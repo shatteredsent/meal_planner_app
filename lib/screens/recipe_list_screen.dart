@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/meal_plan_provider.dart';
 import '../widgets/recipe_card.dart';
+import '../models/recipe.dart';
 import 'recipe_detail_screen.dart';
 import 'add_recipe_screen.dart';
 
@@ -14,11 +15,6 @@ class RecipeListScreen extends StatefulWidget {
 
 class _RecipeListScreenState extends State<RecipeListScreen> {
   String _searchQuery = '';
-  String _selectedCategory = 'All';
-  
-  final List<String> _categories = [
-    'All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -36,60 +32,40 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       ),
       body: Column(
         children: [
-          // Search and filter
+          // Search only
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                TextField(
-                  decoration: const InputDecoration(
-                    hintText: 'Search recipes...',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.toLowerCase();
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _categories.map((category) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: FilterChip(
-                          label: Text(category),
-                          selected: _selectedCategory == category,
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedCategory = category;
-                            });
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
+            child: TextField(
+              decoration: const InputDecoration(
+                hintText: 'Search recipes...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
             ),
           ),
-          
-          // Recipe grid
           Expanded(
             child: Consumer<MealPlanProvider>(
               builder: (context, provider, child) {
-                final filteredRecipes = provider.recipes.where((recipe) {
-                  final matchesSearch = recipe.name.toLowerCase().contains(_searchQuery) ||
-                                       recipe.description.toLowerCase().contains(_searchQuery);
-                  final matchesCategory = _selectedCategory == 'All' || 
-                                         recipe.category == _selectedCategory;
-                  return matchesSearch && matchesCategory;
+                final recipes = provider.recipes;
+                final filteredRecipes = recipes.where((recipe) {
+                  return recipe.name.toLowerCase().contains(_searchQuery) ||
+                         recipe.description.toLowerCase().contains(_searchQuery);
                 }).toList();
 
-                if (filteredRecipes.isEmpty) {
+                // Group recipes by normalized category
+                final Map<String, List<Recipe>> grouped = <String, List<Recipe>>{};
+                for (var recipe in filteredRecipes) {
+                  final cat = recipe.category.trim();
+                  final normalizedCat = cat.isNotEmpty ? cat[0].toUpperCase() + cat.substring(1).toLowerCase() : 'Other';
+                  grouped.putIfAbsent(normalizedCat, () => []).add(recipe);
+                }
+
+                if (grouped.isEmpty) {
                   return const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -105,27 +81,25 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   );
                 }
 
-                return GridView.builder(
+                return ListView(
                   padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.8,
-                  ),
-                  itemCount: filteredRecipes.length,
-                  itemBuilder: (context, index) {
-                    final recipe = filteredRecipes[index];
-                    return RecipeCard(
-                      recipe: recipe,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RecipeDetailScreen(recipe: recipe),
-                        ),
+                  children: [
+                    for (var entry in grouped.entries) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(entry.key, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       ),
-                    );
-                  },
+                      ...entry.value.map((recipe) => RecipeCard(
+                        recipe: recipe,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RecipeDetailScreen(recipe: recipe),
+                          ),
+                        ),
+                      )),
+                    ]
+                  ],
                 );
               },
             ),

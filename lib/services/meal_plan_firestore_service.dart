@@ -10,21 +10,21 @@ class MealPlanFirestoreService {
   }
 
   Future<MealPlan?> getMealPlanForDate(DateTime date) async {
-    final normalizedDate = DateTime(date.year, date.month, date.day);
-    final query = await mealPlansCollection
-        .where('date', isEqualTo: Timestamp.fromDate(normalizedDate))
-        .limit(1)
-        .get();
-    if (query.docs.isEmpty) return null;
-    final doc = query.docs.first;
-    return MealPlan.fromJson(doc.data() as Map<String, dynamic>, doc.id);
+  final normalizedDate = DateTime(date.year, date.month, date.day);
+  final query = await mealPlansCollection
+    .where('date', isEqualTo: Timestamp.fromDate(normalizedDate))
+    .limit(1)
+    .get();
+  if (query.docs.isEmpty) return null;
+  final doc = query.docs.first;
+  return MealPlan.fromJson(doc.data() as Map<String, dynamic>, doc.id);
   }
 
   Future<List<MealPlan>> getAllMealPlans() async {
-    final snapshot = await mealPlansCollection.get();
-    return snapshot.docs
-        .map((doc) => MealPlan.fromJson(doc.data() as Map<String, dynamic>, doc.id))
-        .toList();
+  final snapshot = await mealPlansCollection.get();
+  return snapshot.docs
+    .map((doc) => MealPlan.fromJson(doc.data() as Map<String, dynamic>, doc.id))
+    .toList();
   }
 
   Future<void> deleteMealPlan(String id) async {

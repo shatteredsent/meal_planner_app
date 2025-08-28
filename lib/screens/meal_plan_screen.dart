@@ -14,27 +14,30 @@ class MealPlanScreen extends StatefulWidget {
 }
 
 class _MealPlanScreenState extends State<MealPlanScreen> {
-  final DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
-
   @override
   void initState() {
     super.initState();
-    _selectedDay = _focusedDay;
-    _loadMealPlanForDay(_selectedDay!);
+    // On first build, load meal plan for selected day index
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<MealPlanProvider>(context, listen: false);
+      final dateForDay = _getDateForDay(provider.selectedDayIndex);
+      provider.loadMealPlanForDate(dateForDay);
+    });
   }
 
-  void _loadMealPlanForDay(DateTime date) {
-    final normalizedDate = DateTime(date.year, date.month, date.day);
-    Provider.of<MealPlanProvider>(context, listen: false)
-        .loadMealPlanForDate(normalizedDate);
+  DateTime _getDateForDay(int index) {
+    final startOfWeek = DateTime.now().subtract(Duration(days: DateTime.now().weekday % 7));
+    return DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day).add(Duration(days: index));
   }
 
   void _assignMeal(String mealType, Recipe recipe) async {
     final provider = Provider.of<MealPlanProvider>(context, listen: false);
     final shoppingProvider = Provider.of<ShoppingListProvider>(context, listen: false);
     final current = provider.mealPlanForSelectedDate;
-    final normalizedDate = DateTime(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
+    final selectedDayIndex = provider.selectedDayIndex;
+    final normalizedDate = _getDateForDay(selectedDayIndex);
+    print('Assigning recipe: ${recipe.name}');
+    print('Ingredients: ${recipe.ingredients}');
     final newPlan = MealPlan(
       id: current?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       date: normalizedDate,
@@ -45,8 +48,19 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     await provider.addOrUpdateMealPlan(newPlan);
     await provider.loadMealPlans(); // Ensure mealPlans is up-to-date
     await provider.loadMealPlanForDate(normalizedDate); // Ensure selected date is up-to-date
-    await shoppingProvider.generateShoppingListFromMealPlans(provider.mealPlans); // Now generate shopping list
-    setState(() {});
+    // Calculate start and end of week to match UI logic
+    final today = DateTime.now();
+    final startOfWeek = today.subtract(Duration(days: today.weekday % 7));
+    final weekDates = List.generate(7, (i) => DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day).add(Duration(days: i)));
+    final weekMealPlans = provider.mealPlans.where((plan) {
+      final d = DateTime(plan.date.year, plan.date.month, plan.date.day);
+      return weekDates.any((wd) => wd.year == d.year && wd.month == d.month && wd.day == d.day);
+    }).toList();
+    print('Meal plans included for shopping list:');
+    for (var plan in weekMealPlans) {
+      print('Date: ${plan.date}, Breakfast: ${plan.breakfast?.name}, Lunch: ${plan.lunch?.name}, Dinner: ${plan.dinner?.name}');
+    }
+    await shoppingProvider.generateShoppingListFromMealPlans(weekMealPlans); // Now generate shopping list
   }
 
   @override
@@ -54,6 +68,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     final provider = Provider.of<MealPlanProvider>(context);
     final mealPlan = provider.mealPlanForSelectedDate;
     final recipes = provider.recipes;
+    final selectedDayIndex = provider.selectedDayIndex;
 
     return Scaffold(
       appBar: AppBar(
@@ -67,18 +82,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(7, (index) {
                 final days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                final selected = _selectedDay?.weekday == ((index + 1) % 7 == 0 ? 7 : (index + 1));
-                final dateForDay = DateTime.now().subtract(Duration(days: DateTime.now().weekday % 7)).add(Duration(days: index));
+                final dateForDay = _getDateForDay(index);
+                final selected = selectedDayIndex == index;
                 return ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: selected ? Colors.green : Colors.grey[300],
                     foregroundColor: selected ? Colors.white : Colors.black,
                   ),
                   onPressed: () {
-                    setState(() {
-                      _selectedDay = dateForDay;
-                    });
-                    _loadMealPlanForDay(dateForDay);
+                    provider.setSelectedDayIndex(index);
+                    provider.loadMealPlanForDate(dateForDay);
                   },
                   child: Text(days[index]),
                 );
@@ -97,11 +110,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         await provider.deleteMealPlan(mealPlan.id);
-                        await provider.loadMealPlanForDate(_selectedDay!);
+                        await provider.loadMealPlanForDate(_getDateForDay(selectedDayIndex));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Meal plan deleted!')),
                         );
-                        setState(() {});
                       },
                       icon: const Icon(Icons.delete),
                       label: const Text('Delete Meal Plan for this day'),

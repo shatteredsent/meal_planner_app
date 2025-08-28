@@ -39,20 +39,28 @@ class Recipe {
   }
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
+  List<String> parseListOrString(dynamic value) {
+    if (value == null) return [];
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    if (value is String) {
+      if (value.contains(';')) {
+        return value.split(';').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      } else if (value.contains('|')) {
+        return value.split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      } else {
+        return [value.trim()];
+      }
+    }
+    return [];
+  }
   return Recipe(
     id: json['id'],
     name: json['name'],
     description: json['description'],
-    ingredients: json['ingredients'] is String
-      ? (json['ingredients'] as String).contains(';')
-        ? (json['ingredients'] as String).split(';')
-        : (json['ingredients'] as String).split('|')
-      : List<String>.from(json['ingredients'] ?? []),
-    instructions: json['instructions'] is String
-      ? (json['instructions'] as String).contains(';')
-        ? (json['instructions'] as String).split(';')
-        : (json['instructions'] as String).split('|')
-      : List<String>.from(json['instructions'] ?? []),
+    ingredients: parseListOrString(json['ingredients']),
+    instructions: parseListOrString(json['instructions']),
     prepTime: json['prepTime'] ?? json['prep_time'],
     cookTime: json['cookTime'] ?? json['cook_time'],
     servings: json['servings'],
