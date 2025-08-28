@@ -30,8 +30,9 @@ class MealPlan {
   }
 
   Map<String, dynamic> toJson() {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
     return {
-      'date': Timestamp.fromDate(date),
+      'date': Timestamp.fromDate(normalizedDate),
       'breakfast': breakfast?.toJson(),
       'lunch': lunch?.toJson(),
       'dinner': dinner?.toJson(),

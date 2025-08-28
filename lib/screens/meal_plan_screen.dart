@@ -25,25 +25,27 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   }
 
   void _loadMealPlanForDay(DateTime date) {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
     Provider.of<MealPlanProvider>(context, listen: false)
-        .loadMealPlanForDate(date);
+        .loadMealPlanForDate(normalizedDate);
   }
 
   void _assignMeal(String mealType, Recipe recipe) async {
     final provider = Provider.of<MealPlanProvider>(context, listen: false);
     final shoppingProvider = Provider.of<ShoppingListProvider>(context, listen: false);
     final current = provider.mealPlanForSelectedDate;
+    final normalizedDate = DateTime(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
     final newPlan = MealPlan(
       id: current?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      date: _selectedDay!,
+      date: normalizedDate,
       breakfast: mealType == 'breakfast' ? recipe : current?.breakfast,
       lunch: mealType == 'lunch' ? recipe : current?.lunch,
       dinner: mealType == 'dinner' ? recipe : current?.dinner,
     );
     await provider.addOrUpdateMealPlan(newPlan);
-    await provider.loadMealPlanForDate(_selectedDay!);
-    // Update shopping list for the week
-    await shoppingProvider.generateShoppingListFromMealPlans(provider.mealPlans);
+    await provider.loadMealPlans(); // Ensure mealPlans is up-to-date
+    await provider.loadMealPlanForDate(normalizedDate); // Ensure selected date is up-to-date
+    await shoppingProvider.generateShoppingListFromMealPlans(provider.mealPlans); // Now generate shopping list
     setState(() {});
   }
 

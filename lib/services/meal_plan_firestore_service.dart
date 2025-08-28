@@ -10,8 +10,9 @@ class MealPlanFirestoreService {
   }
 
   Future<MealPlan?> getMealPlanForDate(DateTime date) async {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
     final query = await mealPlansCollection
-        .where('date', isEqualTo: Timestamp.fromDate(date))
+        .where('date', isEqualTo: Timestamp.fromDate(normalizedDate))
         .limit(1)
         .get();
     if (query.docs.isEmpty) return null;

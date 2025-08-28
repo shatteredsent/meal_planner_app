@@ -5,6 +5,7 @@ import '../providers/shopping_list_provider.dart';
 import 'meal_plan_screen.dart';
 import 'recipe_list_screen.dart';
 import 'shopping_list_screen.dart';
+import '../widgets/app_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,9 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _loadInitialData() {
-  // Only load recipes and shopping items
-  context.read<MealPlanProvider>().loadRecipes();
-  context.read<ShoppingListProvider>().loadShoppingItems();
+    context.read<MealPlanProvider>().loadRecipes();
+    context.read<MealPlanProvider>().loadMealPlans(); // <-- Added to ensure meal plans are loaded
+    context.read<ShoppingListProvider>().loadShoppingItems();
   }
 
   void _onItemTapped(int index) {
@@ -42,8 +43,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const AppBanner(),
       body: Center(
-        child: _screens.elementAt(_selectedIndex),
+        child: Column(
+          children: [
+            Expanded(
+              child: _screens.elementAt(_selectedIndex),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
