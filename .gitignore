@@ -48,3 +48,7 @@ firebase-upload/mealplannerapp-65b06-firebase-adminsdk-fbsvc-78f8aa3318.json
 # Firebase service account keys
 **/firebase-adminsdk-*.json
 **/*firebase*.json
+
+# Firebase service account keys
+**/firebase-adminsdk-*.json
+**/*firebase*.json
