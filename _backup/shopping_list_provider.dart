@@ -8,7 +8,7 @@ class ShoppingListProvider with ChangeNotifier {
 	List<ShoppingItem> _shoppingItems = [];
 	bool _isLoading = false;
 	String? _errorMessage;
-	bool _isInitializing = true;
+	final bool _isInitializing = true;
 
 	// Do NOT perform async or notifyListeners in constructor!
 	// Do NOT use WidgetsBinding.instance.addPostFrameCallback in this provider.
