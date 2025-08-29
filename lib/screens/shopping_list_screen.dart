@@ -33,12 +33,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ),
       body: Consumer2<MealPlanProvider, ShoppingListProvider>(
         builder: (context, mealPlanProvider, shoppingProvider, child) {
-          final ingredients = mealPlanProvider.assignedIngredients;
-          final visibleIngredients = ingredients.where((ing) => !_checkedIngredients.contains(ing)).toList();
+          final items = shoppingProvider.shoppingItems;
           return Column(
             children: [
               Expanded(
-                child: visibleIngredients.isEmpty
+                child: items.isEmpty
                     ? const Center(
                         child: Text(
                           'Your shopping list is empty! Assign meals to see ingredients.',
@@ -46,18 +45,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                         ),
                       )
                     : ListView.builder(
-                        itemCount: ingredients.length,
+                        itemCount: items.length,
                         itemBuilder: (context, idx) {
-                          final ingredient = ingredients[idx];
+                          final item = items[idx];
                           return CheckboxListTile(
-                            title: Text(ingredient),
-                            value: _checkedIngredients.contains(ingredient),
+                            title: Text(item.name),
+                            value: _checkedIngredients.contains(item.name),
                             onChanged: (checked) {
                               setState(() {
                                 if (checked == true) {
-                                  _checkedIngredients.add(ingredient);
+                                  _checkedIngredients.add(item.name);
                                 } else {
-                                  _checkedIngredients.remove(ingredient);
+                                  _checkedIngredients.remove(item.name);
                                 }
                               });
                             },
@@ -80,8 +79,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     onPressed: () async {
-                      final unselectedIngredients = ingredients.where((ing) => !_checkedIngredients.contains(ing)).toList();
-                      if (unselectedIngredients.isEmpty) {
+                      final unselectedItems = items.where((item) => !_checkedIngredients.contains(item.name)).toList();
+                      if (unselectedItems.isEmpty) {
                         showDialog(
                           context: context,
                           builder: (ctx) => AlertDialog(
@@ -97,7 +96,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                         );
                         return;
                       }
-                      final shoppingListText = unselectedIngredients.join('\n');
+                      final shoppingListText = unselectedItems.map((item) => item.name).join('\n');
                       await Clipboard.setData(ClipboardData(text: shoppingListText));
                       bool launchedAlexa = false;
                       try {
